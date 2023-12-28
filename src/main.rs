@@ -26,7 +26,7 @@ struct ParsedRequest {
 }
 
 fn get_request_path(request: &str) -> Option<String> {
-    request.split_whitespace().nth(1).map(|s| s.to_string())
+    request.split_whitespace().nth(2).map(|s| s.to_string())
 }
 
 fn parse_request(buffer: &[u8]) -> Option<ParsedRequest> {
