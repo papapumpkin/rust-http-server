@@ -38,6 +38,7 @@ fn parse_request(buffer: &[u8]) -> Option<ParsedRequest> {
 }
 
 fn is_valid_path(path: &str) -> bool {
+    println!(path);
     let valid_paths = ["/"];
     valid_paths.contains(&path)
 }
