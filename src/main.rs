@@ -8,10 +8,7 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<()>{
     let mut buffer = [0; 1024];  // create 1024 0s as buffer
 
     loop {
-        match stream.read(&mut buffer)? {
-            // Ok(bytes_read) if bytes_read > 0 => {
-            //     stream.Write
-            // },
+        match stream.read(&mut buffer) {
             Ok(_) => {
                 let response = "HTTP/1.1 200 OK\r\n\r\n";
                 stream.write_all(response.as_bytes())?;
