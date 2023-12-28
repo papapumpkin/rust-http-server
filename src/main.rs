@@ -26,7 +26,8 @@ struct ParsedRequest {
 }
 
 fn get_request_path(request: &str) -> Option<String> {
-    request.split_whitespace().nth(2).map(|s| s.to_string())
+    println!("{}", request);
+    request.split_whitespace().nth(1).map(|s| s.to_string())
 }
 
 fn parse_request(buffer: &[u8]) -> Option<ParsedRequest> {
@@ -38,7 +39,6 @@ fn parse_request(buffer: &[u8]) -> Option<ParsedRequest> {
 }
 
 fn is_valid_path(path: &str) -> bool {
-    println!("{}", path);
     let valid_paths = ["/"];
     valid_paths.contains(&path)
 }
