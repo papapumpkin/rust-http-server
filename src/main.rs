@@ -1,18 +1,26 @@
-use std::net::{TcpListener, TcpStream};
-use std::io::{self, Read};
+use std::{
+    io::{self, Read, Write},
+    net::{TcpListener, TcpStream}
+};
 
 
 fn handle_connection(mut stream: TcpStream) -> io::Result<()>{
-    let mut buffer = [0; 1024];  // create 1024 0s in buffer
+    let mut buffer = [0; 1024];  // create 1024 0s as buffer
 
     loop {
-        let bytes_read = stream.read(&mut buffer)?;
-
-        if bytes_read == 0 {
-            break;
+        match stream.read(&mut buffer)? {
+            // Ok(bytes_read) if bytes_read > 0 => {
+            //     stream.Write
+            // },
+            Ok(_) => {
+                let response = "HTTP/1.1 200 OK\r\n\r\n";
+                stream.write_all(response.as_bytes())?;
+            },
+            Err(e) => {
+                eprintln!("Error reading from stream: {}", e);
+                break;
+            }
         }
-
-        println!("HTTP/1.1 200 OK\r\n\r\n")
     }
     Ok(())
 }
