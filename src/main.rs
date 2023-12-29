@@ -72,7 +72,7 @@ fn main() -> io::Result<()> {
 
     for stream in listener.incoming() {
         match stream {
-            Ok(stream) => handle_connection(stream, &config)?,
+            Ok(stream) => std::thread::spawn(move || handle_connection(stream, &config)?),
             Err(e) => eprintln!("Connection failed: {}", e),
         }
     }
