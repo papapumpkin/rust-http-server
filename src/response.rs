@@ -16,14 +16,15 @@ impl fmt::Display for HTTPResponse {
 
         if let Some(ref body) = self.body {
             response.push_str(&format!(
-                "Content-Type: text/plain{}Content-Length: {}{}{}",
+                "Content-Type: text/plain{}Content-Length: {}{}{}{}",
                 LINE_FEED,
                 body.body.len(),
                 LINE_FEED,
-                LINE_FEED
+                LINE_FEED,
+                &body.body,
             ));
-            response.push_str(&body.body);
         }
+        // response.push_str(LINE_FEED);
         write!(f, "{}", response)
     }
 }
