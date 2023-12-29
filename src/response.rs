@@ -28,4 +28,3 @@ impl fmt::Display for HTTPResponse {
         write!(f, "{}", response)
     }
 }
-

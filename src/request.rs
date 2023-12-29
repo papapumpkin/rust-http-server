@@ -4,11 +4,17 @@ pub struct ParsedRequest {
 }
 
 fn get_request_path(request_line: &str) -> Option<String> {
-    request_line.split_whitespace().nth(1).map(|s| s.to_string())
+    request_line
+        .split_whitespace()
+        .nth(1)
+        .map(|s| s.to_string())
 }
 
 fn get_user_agent(request_line: &str) -> Option<String> {
-    request_line.split_whitespace().nth(1).map(|s| s.to_string())
+    request_line
+        .split_whitespace()
+        .nth(1)
+        .map(|s| s.to_string())
 }
 
 pub fn parse_request(buffer: &[u8]) -> Option<ParsedRequest> {

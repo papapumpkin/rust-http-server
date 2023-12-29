@@ -1,15 +1,18 @@
 use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::thread;
+use std::path::Path;
 use std::sync::Arc;
+use std::thread;
 
+mod cli;
 mod config;
+mod file;
 mod http;
 mod request;
 mod response;
 
 use config::Config;
-use http::{HTTPBody, HTTPStatus};
+use http::{HTTPBody, HTTPContentType, HTTPStatus};
 use response::HTTPResponse;
 
 fn handle_connection(mut stream: TcpStream, config: Arc<Config>) -> io::Result<()> {
@@ -24,18 +27,43 @@ fn handle_connection(mut stream: TcpStream, config: Arc<Config>) -> io::Result<(
                         status: HTTPStatus::Ok,
                         body: None,
                     },
-                    "/user-agent" => {
-                        HTTPResponse {
-                            status: HTTPStatus::Ok,
-                            body: Some(HTTPBody { body: request.user_agent }),
-                        }
+                    "/user-agent" => HTTPResponse {
+                        status: HTTPStatus::Ok,
+                        body: Some(HTTPBody {
+                            body: request.user_agent,
+                            content_type: HTTPContentType::PlainText,
+                        }),
                     },
                     path if path.starts_with("/echo/") => {
                         let to_echo = &path[6..];
                         let to_echo = to_echo.to_string();
                         HTTPResponse {
                             status: HTTPStatus::Ok,
-                            body: Some(HTTPBody { body: to_echo }),
+                            body: Some(HTTPBody {
+                                body: to_echo,
+                                content_type: HTTPContentType::PlainText,
+                            }),
+                        }
+                    }
+                    path if path.starts_with("/files/") => {
+                        let directory = cli::get_cli_arg_by_name("--directory")
+                            .expect("Argument not found");
+
+                        let safe_filename = file::parse_filename_from_request_path(&path)
+                            .expect("Invalid filename in request");
+
+                        let full_path = Path::new(&directory).join(safe_filename);
+                        println!("Full path to file: {}", full_path.display());
+
+                        let file_content =
+                            file::read_file_to_string(&full_path).expect("Failed to read the file");
+
+                        HTTPResponse {
+                            status: HTTPStatus::Ok,
+                            body: Some(HTTPBody {
+                                body: file_content,
+                                content_type: HTTPContentType::File,
+                            }),
                         }
                     }
                     _ => HTTPResponse {
@@ -78,12 +106,12 @@ fn main() -> io::Result<()> {
                 let _ = thread::spawn(move || {
                     let _ = handle_connection(stream, config_clone);
                 });
-            },
+            }
             Err(e) => {
                 let _ = thread::spawn(move || {
                     eprintln!("Connection failed: {}", e);
                 });
-            },
+            }
         }
     }
     Ok(())
