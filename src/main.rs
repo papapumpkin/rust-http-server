@@ -23,7 +23,6 @@ fn handle_connection(mut stream: TcpStream, config: &Config) -> io::Result<()> {
                         body: None,
                     },
                     "/user-agent" => {
-                        // let user_agent = &user_agent
                         HTTPResponse {
                             status: HTTPStatus::Ok,
                             body: Some(HTTPBody { body: request.user_agent }),
