@@ -22,8 +22,9 @@ fn handle_connection(mut stream: TcpStream, config: &Config) -> io::Result<()> {
                         status: HTTPStatus::Ok,
                         body: None,
                     },
-                    "/echo" => {
-                        let to_echo: String = "test".to_string();
+                    path if path.starts_with("/echo/") => {
+                        let to_echo = &path[6..];
+                        let to_echo = to_echo.to_string();
                         HTTPResponse {
                             status: HTTPStatus::Ok,
                             body: Some(HTTPBody { body: to_echo }),
@@ -40,6 +41,7 @@ fn handle_connection(mut stream: TcpStream, config: &Config) -> io::Result<()> {
                     body: None,
                 }
             };
+            println!("{}", format!("{}", response));
             stream.write_all(response.to_string().as_bytes())?;
         }
         Err(_) => {
