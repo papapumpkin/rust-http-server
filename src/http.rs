@@ -28,7 +28,7 @@ impl fmt::Display for HTTPStatus {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "HTTP/1.1 {} {}\r\n\r\n",
+            "HTTP/1.1 {} {}",
             self.status_code(),
             self.reason_phrase()
         )
