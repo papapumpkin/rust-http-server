@@ -24,7 +24,7 @@ impl fmt::Display for HTTPResponse {
                 &body.body,
             ));
         }
-        // response.push_str(LINE_FEED);
+        response.push_str(LINE_FEED);
         write!(f, "{}", response)
     }
 }
