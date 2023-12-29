@@ -22,6 +22,13 @@ fn handle_connection(mut stream: TcpStream, config: &Config) -> io::Result<()> {
                         status: HTTPStatus::Ok,
                         body: None,
                     },
+                    "/user-agent" => {
+                        // let user_agent = &user_agent
+                        HTTPResponse {
+                            status: HTTPStatus::Ok,
+                            body: Some(HTTPBody { body: request.user_agent }),
+                        }
+                    },
                     path if path.starts_with("/echo/") => {
                         let to_echo = &path[6..];
                         let to_echo = to_echo.to_string();

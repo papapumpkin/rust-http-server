@@ -38,12 +38,3 @@ impl fmt::Display for HTTPStatus {
 pub struct HTTPBody {
     pub body: String,
 }
-
-// impl HTTPBody {
-//     pub fn content_type(&self) -> String {
-//         "Content-Type: text/plain".to_string()
-//     }
-//     pub fn content_length(&self) -> String {
-//         format!("Content-Length: {}", self.body.len())
-//     }
-// }
