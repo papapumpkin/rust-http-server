@@ -18,7 +18,7 @@ fn handle_connection(mut stream: TcpStream, config: &Config) -> io::Result<()> {
         Ok(_) => {
             let response = if let Some(request) = request::parse_request(&buffer) {
                 match request.path.as_str() {
-                    "/" => HTTPResponse{
+                    "/" => HTTPResponse {
                         status: HTTPStatus::Ok,
                         body: None,
                     },
@@ -30,13 +30,13 @@ fn handle_connection(mut stream: TcpStream, config: &Config) -> io::Result<()> {
                             body: Some(HTTPBody { body: to_echo }),
                         }
                     }
-                    _ => HTTPResponse{
+                    _ => HTTPResponse {
                         status: HTTPStatus::NotFound,
                         body: None,
                     },
                 }
             } else {
-                HTTPResponse{
+                HTTPResponse {
                     status: HTTPStatus::InternalServerError,
                     body: None,
                 }
@@ -45,7 +45,10 @@ fn handle_connection(mut stream: TcpStream, config: &Config) -> io::Result<()> {
             stream.write_all(response.to_string().as_bytes())?;
         }
         Err(_) => {
-            let response = HTTPStatus::InternalServerError;
+            let response = HTTPResponse {
+                status: HTTPStatus::InternalServerError,
+                body: None,
+            };
             stream.write_all(response.to_string().as_bytes())?;
         }
     }
