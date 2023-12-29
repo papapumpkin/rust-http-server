@@ -1,5 +1,7 @@
 use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
+use std::thread;
+use std::sync::Arc;
 
 mod config;
 mod http;
@@ -10,7 +12,7 @@ use config::Config;
 use http::{HTTPBody, HTTPStatus};
 use response::HTTPResponse;
 
-fn handle_connection(mut stream: TcpStream, config: &Config) -> io::Result<()> {
+fn handle_connection(mut stream: TcpStream, config: Arc<Config>) -> io::Result<()> {
     println!("Accepted new connection!");
     let mut buffer = vec![0u8; config.buffer_size];
 
@@ -62,8 +64,7 @@ fn handle_connection(mut stream: TcpStream, config: &Config) -> io::Result<()> {
 }
 
 fn main() -> io::Result<()> {
-    let config = Config::load().expect("Failed to load configuration");
-
+    let config = Arc::new(Config::load().expect("Failed to load configuration"));
     println!("Starting server...");
     let address = format!("{}:{}", config.hostname, config.port);
     let listener = TcpListener::bind(&address)?;
@@ -71,9 +72,18 @@ fn main() -> io::Result<()> {
     println!("Server listening on {}", address);
 
     for stream in listener.incoming() {
+        let config_clone = config.clone();
         match stream {
-            Ok(stream) => std::thread::spawn(move || handle_connection(stream, &config)?),
-            Err(e) => eprintln!("Connection failed: {}", e),
+            Ok(stream) => {
+                let _ = thread::spawn(move || {
+                    let _ = handle_connection(stream, config_clone);
+                });
+            },
+            Err(e) => {
+                let _ = thread::spawn(move || {
+                    eprintln!("Connection failed: {}", e);
+                });
+            },
         }
     }
     Ok(())
