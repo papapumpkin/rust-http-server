@@ -55,16 +55,20 @@ fn handle_connection(mut stream: TcpStream, config: Arc<Config>) -> io::Result<(
                         let full_path = Path::new(&directory).join(safe_filename);
                         println!("Full path to file: {}", full_path.display());
 
-                        let file_content =
-                            file::read_file_to_string(&full_path).expect("Failed to read the file");
-
-                        HTTPResponse {
-                            status: HTTPStatus::Ok,
-                            body: Some(HTTPBody {
-                                body: file_content,
-                                content_type: HTTPContentType::File,
-                            }),
-                        }
+                        let response = match file::read_file_to_string(&full_path) {
+                            Some(file_content) => HTTPResponse {
+                                status: HTTPStatus::Ok,
+                                body: Some(HTTPBody {
+                                    body: file_content,
+                                    content_type: HTTPContentType::File, // Ensure this is correctly defined
+                                }),
+                            },
+                            None => HTTPResponse {
+                                status: HTTPStatus::NotFound,
+                                body: None,
+                            },
+                        };
+                        response
                     }
                     _ => HTTPResponse {
                         status: HTTPStatus::NotFound,

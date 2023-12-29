@@ -19,6 +19,6 @@ pub fn parse_filename_from_request_path(path: &str) -> Option<String> {
 pub fn read_file_to_string(file_path: &Path) -> Option<String> {
     match fs::read_to_string(file_path) {
         Ok(content) => Some(content),
-        Err(_) => None
+        Err(_) => None,
     }
 }
