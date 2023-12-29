@@ -17,5 +17,14 @@ pub fn parse_filename_from_request_path(path: &str) -> Option<String> {
 }
 
 pub fn read_file_to_string(file_path: &Path) -> Result<String, std::io::Error> {
-    fs::read_to_string(file_path)
+    match fs::read_to_string(file_path) {
+        Ok(content) => Ok(content),
+        Err(e) => {
+            match e.kind() {
+                ErrorKind::NotFound => Err(io::Error::new(ErrorKind::NotFound, format!("File not found: {}", file_path.display()))),
+                ErrorKind::PermissionDenied => Err(io::Error::new(ErrorKind::PermissionDenied, "Permission denied")),
+                _ => Err(e),
+            }
+        }
+    }
 }
