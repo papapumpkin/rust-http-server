@@ -46,8 +46,8 @@ fn handle_connection(mut stream: TcpStream, config: Arc<Config>) -> io::Result<(
                         }
                     }
                     path if path.starts_with("/files/") => {
-                        let directory = cli::get_cli_arg_by_name("--directory")
-                            .expect("Argument not found");
+                        let directory =
+                            cli::get_cli_arg_by_name("--directory").expect("Argument not found");
 
                         let safe_filename = file::parse_filename_from_request_path(&path)
                             .expect("Invalid filename in request");

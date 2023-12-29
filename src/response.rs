@@ -16,7 +16,8 @@ impl fmt::Display for HTTPResponse {
 
         if let Some(ref body) = self.body {
             response.push_str(&format!(
-                "Content-Type: text/plain{}Content-Length: {}{}{}{}",
+                "{}{}Content-Length: {}{}{}{}",
+                body.content_type,
                 LINE_FEED,
                 body.body.len(),
                 LINE_FEED,
