@@ -42,15 +42,25 @@ fn get_content_length(request_line: &str) -> usize {
 pub fn parse_request_headers(headers: &str) -> RequestHeaders {
     println!("Headers: {}", headers);
     let header_lines: Vec<&str> = headers.split("\r\n").collect();
-    let method = get_request_method(header_lines[0]);
-    let path = get_request_path(header_lines[0]);
-    let user_agent = get_user_agent(header_lines[2]);
 
-    let content_length = if method == "POST" {
-        Some(get_content_length(header_lines[4]))
-    } else {
-        None
-    };
+    let mut method = String::new();
+    let mut path = String::new();
+    let mut user_agent = String::new();
+    let mut content_length = None;
+
+    for line in header_lines.iter() {
+        if line.starts_with("GET") || line.starts_with("POST") {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            method = parts.get(0).unwrap_or(&"").to_string();
+            path = parts.get(1).unwrap_or(&"").to_string();
+        } else if line.starts_with("User-Agent:") {
+            let parts: Vec<&str> = line.split(": ").collect();
+            user_agent = parts.get(1).unwrap_or(&"").to_string();
+        } else if line.starts_with("Content-Length:") {
+            let parts: Vec<&str> = line.split(": ").collect();
+            content_length = parts.get(1).and_then(|s| s.parse::<usize>().ok());
+        }
+    }
 
     RequestHeaders {
         method,
@@ -59,6 +69,7 @@ pub fn parse_request_headers(headers: &str) -> RequestHeaders {
         content_length,
     }
 }
+
 
 pub fn parse_stream(stream: &TcpStream) -> io::Result<ParsedRequest> {
     let mut reader = BufReader::new(stream);
