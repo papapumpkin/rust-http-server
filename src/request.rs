@@ -1,4 +1,4 @@
-use std::io::{self, BufReader, BufRead, Read};
+use std::io::{self, BufRead, BufReader, Read};
 use std::net::TcpStream;
 
 pub struct RequestHeaders {
@@ -12,7 +12,6 @@ pub struct ParsedRequest {
     pub headers: RequestHeaders,
     pub body: Option<String>,
 }
-
 
 pub fn parse_request_headers(headers: &str) -> RequestHeaders {
     println!("Headers: {}", headers);
@@ -45,7 +44,6 @@ pub fn parse_request_headers(headers: &str) -> RequestHeaders {
     }
 }
 
-
 pub fn parse_stream(stream: &TcpStream) -> io::Result<ParsedRequest> {
     let mut reader = BufReader::new(stream);
     let mut headers = String::new();
@@ -67,8 +65,8 @@ pub fn parse_stream(stream: &TcpStream) -> io::Result<ParsedRequest> {
     reader.read_exact(&mut body_bytes)?;
 
     // Convert body to String
-    let body_str = String::from_utf8(body_bytes)
-        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    let body_str =
+        String::from_utf8(body_bytes).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
     Ok(ParsedRequest {
         headers: parsed_headers,

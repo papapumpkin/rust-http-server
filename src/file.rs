@@ -1,7 +1,7 @@
 use std::fs;
 use std::fs::File;
-use std::path::Path;
 use std::io::{self, Write};
+use std::path::Path;
 
 pub fn parse_filename_from_request_path(path: &str) -> Option<String> {
     let filename = path[7..].to_string(); // Assuming '/files/' is always present
