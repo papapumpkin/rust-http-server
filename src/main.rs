@@ -1,4 +1,4 @@
-use std::io::{self, Read, BufReader, Write};
+use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::Path;
 use std::sync::Arc;
@@ -70,20 +70,19 @@ fn handle_connection(mut stream: TcpStream, config: Arc<Config>) -> io::Result<(
                             };
                             result
                         } else if request.method == "POST" {
-                            let mut reader = BufReader::new(&mut stream);
-                            let mut body = String::new();
+                            let mut body_bytes = vec![0u8; request.content_length.unwrap()];
+                            println!("{}", request.content_length.unwrap());
+                            stream.read_exact(&mut body_bytes)?;
 
-                            // Use read_to_string to read until EOF
-                            reader.read_to_string(&mut body).unwrap_or_else(|e| {
-                                eprintln!("Error reading request body: {}", e);
-                                0 // Handling the error by returning 0 bytes read
-                            });
-                            file::write_string_to_file(&full_path, &body)?;
+                            // Convert the byte vector to a String if it's expected to be UTF-8
+                            let body_str = String::from_utf8(body_bytes)
+                                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+                            file::write_string_to_file(&full_path, &body_str)?;
 
                             HTTPResponse {
                                 status: HTTPStatus::Created,
                                 body: Some(HTTPBody {
-                                    body: body.to_string(),
+                                    body: body_str,
                                     content_type: HTTPContentType::File,
                                 }),
                             }

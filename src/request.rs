@@ -2,7 +2,7 @@ pub struct ParsedRequest {
     pub method: String,
     pub path: String,
     pub user_agent: String,
-    pub content_length: usize,
+    pub content_length: Option<usize>,
 }
 
 fn get_request_path(request_line: &str) -> Option<String> {
@@ -38,7 +38,12 @@ pub fn parse_request(buffer: &[u8]) -> Option<ParsedRequest> {
     let method = get_request_method(&request_lines[0])?;
     let path = get_request_path(&request_lines[0])?;
     let user_agent = get_user_agent(&request_lines[2])?;
-    let content_length = get_content_length(&request_lines[4])?;
+
+    let content_length = if method == "POST" {
+        Some(get_content_length(&request_lines[4])?)
+    } else {
+        None
+    };
 
     let parsed_request = ParsedRequest {
         method,
