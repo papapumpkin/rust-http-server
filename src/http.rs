@@ -3,6 +3,7 @@ use std::fmt;
 pub enum HTTPStatus {
     Ok,
     Created,
+    BadRequest,
     NotFound,
     InternalServerError,
 }
@@ -12,6 +13,7 @@ impl HTTPStatus {
         match self {
             HTTPStatus::Ok => 200,
             HTTPStatus::Created => 201,
+            HTTPStatus::BadRequest => 400,
             HTTPStatus::NotFound => 404,
             HTTPStatus::InternalServerError => 500,
         }
@@ -21,6 +23,7 @@ impl HTTPStatus {
         match self {
             HTTPStatus::Ok => "OK",
             HTTPStatus::Created => "Created",
+            HTTPStatus::BadRequest => "Bad Request",
             HTTPStatus::NotFound => "Not Found",
             HTTPStatus::InternalServerError => "Internal Server Error",
         }

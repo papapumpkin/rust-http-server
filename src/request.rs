@@ -1,5 +1,5 @@
 pub struct ParsedRequest {
-    pub method: HTTPMethod,
+    pub method: String,
     pub path: String,
     pub user_agent: String,
     pub body: Option<String>,
@@ -37,13 +37,14 @@ pub fn parse_request(buffer: &[u8]) -> Option<ParsedRequest> {
     let request_str = String::from_utf8_lossy(buffer);
     println!("{}", request_str);
     let request_lines: Vec<&str> = request_str.split_terminator("\r\n").collect();
-    parsed_request = ParsedRequest {
+    let mut parsed_request = ParsedRequest {
         method: get_request_method(&request_lines[0])?,
         path: get_request_path(&request_lines[0])?,
         user_agent: get_user_agent(&request_lines[2])?,
+        body: None
     };
     if parsed_request.method == "GET" {
-        parsed_request.body = get_request_body(&request_lines[-1])?
+        parsed_request.body = Some(get_request_body(&request_lines[4])?);
     };
     Some(parsed_request)
 }

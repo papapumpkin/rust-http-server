@@ -54,7 +54,7 @@ fn handle_connection(mut stream: TcpStream, config: Arc<Config>) -> io::Result<(
 
                         let full_path = Path::new(&directory).join(safe_filename);
                         println!("Full path to file: {}", full_path.display());
-                        if response.method == "GET" {
+                        if request.method == "GET" {
                             let response = match file::read_file_to_string(&full_path) {
                                 Some(file_content) => HTTPResponse {
                                     status: HTTPStatus::Ok,
@@ -69,14 +69,20 @@ fn handle_connection(mut stream: TcpStream, config: Arc<Config>) -> io::Result<(
                                 },
                             };
                             response
-                        } else if response.method == "POST" {
-                            file::write_string_to_file(&full_path, &response.body)?;
+                        } else if request.method == "POST" {
+                            file::write_string_to_file(&full_path, request.body.as_ref().unwrap())?;
+
                             HTTPResponse {
                                 status: HTTPStatus::Created,
                                 body: Some(HTTPBody {
-                                    body: response.body,
+                                    body: request.body.unwrap(),
                                     content_type: HTTPContentType::File,
                                 }),
+                            }
+                        } else {
+                            HTTPResponse {
+                                status: HTTPStatus::BadRequest,
+                                body: None,
                             }
                         }
                     }
