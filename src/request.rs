@@ -40,8 +40,6 @@ pub fn parse_request(buffer: &[u8]) -> Option<ParsedRequest> {
     let request_str = String::from_utf8_lossy(buffer);
     let request_lines: Vec<&str> = request_str.split_terminator("\r\n").collect();
 
-    println!("{}", &request_lines[7]);
-
     let method = get_request_method(&request_lines[0])?;
     let path = get_request_path(&request_lines[0])?;
     let user_agent = get_user_agent(&request_lines[2])?;
