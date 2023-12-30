@@ -40,6 +40,7 @@ fn get_content_length(request_line: &str) -> usize {
 }
 
 pub fn parse_request_headers(headers: &str) -> RequestHeaders {
+    println!("Headers: {}", headers);
     let header_lines: Vec<&str> = headers.split("\r\n").collect();
     let method = get_request_method(header_lines[0]);
     let path = get_request_path(header_lines[0]);
