@@ -13,31 +13,6 @@ pub struct ParsedRequest {
     pub body: Option<String>,
 }
 
-fn get_request_path(request_line: &str) -> String {
-    request_line
-        .split_whitespace()
-        .nth(1)
-        .map(|s| s.to_string()).unwrap()
-}
-
-fn get_user_agent(request_line: &str) -> String {
-    request_line
-        .split_whitespace()
-        .nth(1)
-        .map(|s| s.to_string()).unwrap()
-}
-
-fn get_request_method(request_line: &str) -> String {
-    request_line
-        .split_whitespace()
-        .nth(0)
-        .map(|s| s.to_string()).unwrap()
-}
-
-fn get_content_length(request_line: &str) -> usize {
-    let parts: Vec<&str> = request_line.split_whitespace().collect();
-    parts[1].parse::<usize>().unwrap_or(0)
-}
 
 pub fn parse_request_headers(headers: &str) -> RequestHeaders {
     println!("Headers: {}", headers);
