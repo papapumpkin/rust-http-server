@@ -3,6 +3,7 @@ pub struct ParsedRequest {
     pub path: String,
     pub user_agent: String,
     pub content_length: Option<usize>,
+    pub body: Option<String>,
 }
 
 fn get_request_path(request_line: &str) -> Option<String> {
@@ -31,9 +32,15 @@ fn get_content_length(request_line: &str) -> Option<usize> {
     Some(parts[1].parse::<usize>().unwrap_or(0))
 }
 
+// fn get_request_body(request_line: &str) -> Option<usize> {
+
+// }
+
 pub fn parse_request(buffer: &[u8]) -> Option<ParsedRequest> {
     let request_str = String::from_utf8_lossy(buffer);
     let request_lines: Vec<&str> = request_str.split_terminator("\r\n").collect();
+
+    println!("{}", &request_lines[7]);
 
     let method = get_request_method(&request_lines[0])?;
     let path = get_request_path(&request_lines[0])?;
@@ -45,11 +52,18 @@ pub fn parse_request(buffer: &[u8]) -> Option<ParsedRequest> {
         None
     };
 
+    let body = if method == "POST" {
+        Some(request_lines[7].to_string())
+    } else {
+        None
+    };
+
     let parsed_request = ParsedRequest {
         method,
         path,
         user_agent,
         content_length,
+        body,
     };
 
     Some(parsed_request)

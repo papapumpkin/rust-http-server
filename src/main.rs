@@ -70,19 +70,13 @@ fn handle_connection(mut stream: TcpStream, config: Arc<Config>) -> io::Result<(
                             };
                             result
                         } else if request.method == "POST" {
-                            let mut body_bytes = vec![0u8; request.content_length.unwrap()];
-                            println!("{}", request.content_length.unwrap());
-                            stream.read_exact(&mut body_bytes)?;
-
-                            // Convert the byte vector to a String if it's expected to be UTF-8
-                            let body_str = String::from_utf8(body_bytes)
-                                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-                            file::write_string_to_file(&full_path, &body_str)?;
+                            let body = request.body.unwrap();
+                            file::write_string_to_file(&full_path, &body)?;
 
                             HTTPResponse {
                                 status: HTTPStatus::Created,
                                 body: Some(HTTPBody {
-                                    body: body_str,
+                                    body: body,
                                     content_type: HTTPContentType::File,
                                 }),
                             }
