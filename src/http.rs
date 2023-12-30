@@ -2,6 +2,7 @@ use std::fmt;
 
 pub enum HTTPStatus {
     Ok,
+    Created,
     NotFound,
     InternalServerError,
 }
@@ -10,6 +11,7 @@ impl HTTPStatus {
     fn status_code(&self) -> u16 {
         match self {
             HTTPStatus::Ok => 200,
+            HTTPStatus::Created => 201,
             HTTPStatus::NotFound => 404,
             HTTPStatus::InternalServerError => 500,
         }
@@ -18,6 +20,7 @@ impl HTTPStatus {
     fn reason_phrase(&self) -> &str {
         match self {
             HTTPStatus::Ok => "OK",
+            HTTPStatus::Created => "Created",
             HTTPStatus::NotFound => "Not Found",
             HTTPStatus::InternalServerError => "Internal Server Error",
         }

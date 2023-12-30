@@ -22,3 +22,9 @@ pub fn read_file_to_string(file_path: &Path) -> Option<String> {
         Err(_) => None,
     }
 }
+
+pub fn write_string_to_file(file_path: &Path, to_write: &str) -> io::Result<()> {
+    let mut data_file = File::create(file_path).expect("creation failed");
+    data_file.write(to_write.as_bytes()).expect("write failed");
+    Ok(())
+}

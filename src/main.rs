@@ -54,21 +54,31 @@ fn handle_connection(mut stream: TcpStream, config: Arc<Config>) -> io::Result<(
 
                         let full_path = Path::new(&directory).join(safe_filename);
                         println!("Full path to file: {}", full_path.display());
-
-                        let response = match file::read_file_to_string(&full_path) {
-                            Some(file_content) => HTTPResponse {
-                                status: HTTPStatus::Ok,
+                        if response.method == "GET" {
+                            let response = match file::read_file_to_string(&full_path) {
+                                Some(file_content) => HTTPResponse {
+                                    status: HTTPStatus::Ok,
+                                    body: Some(HTTPBody {
+                                        body: file_content,
+                                        content_type: HTTPContentType::File,
+                                    }),
+                                },
+                                None => HTTPResponse {
+                                    status: HTTPStatus::NotFound,
+                                    body: None,
+                                },
+                            };
+                            response
+                        } else if response.method == "POST" {
+                            file::write_string_to_file(&full_path, &response.body)?;
+                            HTTPResponse {
+                                status: HTTPStatus::Created,
                                 body: Some(HTTPBody {
-                                    body: file_content,
-                                    content_type: HTTPContentType::File, // Ensure this is correctly defined
+                                    body: response.body,
+                                    content_type: HTTPContentType::File,
                                 }),
-                            },
-                            None => HTTPResponse {
-                                status: HTTPStatus::NotFound,
-                                body: None,
-                            },
-                        };
-                        response
+                            }
+                        }
                     }
                     _ => HTTPResponse {
                         status: HTTPStatus::NotFound,
