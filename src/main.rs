@@ -1,4 +1,4 @@
-use std::io::{self, Read, Write};
+use std::io::{self, Read, BufReader, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::Path;
 use std::sync::Arc;
@@ -55,7 +55,7 @@ fn handle_connection(mut stream: TcpStream, config: Arc<Config>) -> io::Result<(
                         let full_path = Path::new(&directory).join(safe_filename);
                         println!("Full path to file: {}", full_path.display());
                         if request.method == "GET" {
-                            let response = match file::read_file_to_string(&full_path) {
+                            let result = match file::read_file_to_string(&full_path) {
                                 Some(file_content) => HTTPResponse {
                                     status: HTTPStatus::Ok,
                                     body: Some(HTTPBody {
@@ -68,14 +68,22 @@ fn handle_connection(mut stream: TcpStream, config: Arc<Config>) -> io::Result<(
                                     body: None,
                                 },
                             };
-                            response
+                            result
                         } else if request.method == "POST" {
-                            file::write_string_to_file(&full_path, request.body.as_ref().unwrap())?;
+                            let mut reader = BufReader::new(&mut stream);
+                            let mut body = String::new();
+
+                            // Use read_to_string to read until EOF
+                            reader.read_to_string(&mut body).unwrap_or_else(|e| {
+                                eprintln!("Error reading request body: {}", e);
+                                0 // Handling the error by returning 0 bytes read
+                            });
+                            file::write_string_to_file(&full_path, &body)?;
 
                             HTTPResponse {
                                 status: HTTPStatus::Created,
                                 body: Some(HTTPBody {
-                                    body: request.body.unwrap(),
+                                    body: body.to_string(),
                                     content_type: HTTPContentType::File,
                                 }),
                             }
