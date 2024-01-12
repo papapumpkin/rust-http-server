@@ -11,11 +11,11 @@ mod http;
 mod request;
 mod response;
 
-use config::Config;
+use config::Settings;
 use http::{HTTPBody, HTTPContentType, HTTPStatus};
 use response::HTTPResponse;
 
-fn handle_connection(mut stream: TcpStream, _config: Arc<Config>) -> io::Result<()> {
+fn handle_connection(mut stream: TcpStream, _config: Arc<Settings>) -> io::Result<()> {
     println!("Accepted new connection!");
 
     match request::parse_stream(&stream) {
@@ -105,19 +105,19 @@ fn handle_connection(mut stream: TcpStream, _config: Arc<Config>) -> io::Result<
 }
 
 fn main() -> io::Result<()> {
-    let config = Arc::new(Config::load().expect("Failed to load configuration"));
+    let settings = Arc::new(Settings::load().expect("Failed to load configuration"));
     println!("Starting server...");
-    let address = format!("{}:{}", config.hostname, config.port);
+    let address = format!("{}:{}", settings.hostname, settings.port);
     let listener = TcpListener::bind(&address)?;
 
     println!("Server listening on {}", address);
 
     for stream in listener.incoming() {
-        let config_clone = config.clone();
+        let settings_clone = settings.clone();
         match stream {
             Ok(stream) => {
                 let _ = thread::spawn(move || {
-                    let _ = handle_connection(stream, config_clone);
+                    let _ = handle_connection(stream, settings_clone);
                 });
             }
             Err(e) => {
