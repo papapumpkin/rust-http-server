@@ -29,3 +29,36 @@ impl fmt::Display for HTTPResponse {
         write!(f, "{}", response)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::HTTPContentType;
+
+    #[test]
+    fn test_http_response_without_body() {
+        let response = HTTPResponse {
+            status: HTTPStatus::Ok,
+            body: None,
+        };
+
+        let expected_output = format!("HTTP/1.1 200 OK\r\n\r\n");
+        assert_eq!(format!("{}", response), expected_output);
+    }
+
+    #[test]
+    fn test_http_response_with_body() {
+        let response = HTTPResponse {
+            status: HTTPStatus::NotFound,
+            body: Some(HTTPBody {
+                body: "Page not found".to_string(),
+                content_type: HTTPContentType::PlainText,
+            }),
+        };
+
+        let expected_output = format!(
+            "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\nContent-Length: 14\r\n\r\nPage not found\r\n"
+        );
+        assert_eq!(format!("{}", response), expected_output);
+    }
+}

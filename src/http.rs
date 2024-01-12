@@ -85,19 +85,16 @@ mod tests {
         assert_eq!(HTTPStatus::NotFound.reason_phrase(), "Not Found");
 
         assert_eq!(HTTPStatus::InternalServerError.status_code(), 500);
-        assert_eq!(HTTPStatus::InternalServerError.reason_phrase(), "Internal Server Error");
+        assert_eq!(
+            HTTPStatus::InternalServerError.reason_phrase(),
+            "Internal Server Error"
+        );
     }
 
     #[test]
     fn http_status_display_format() {
-        assert_eq!(
-            format!("{}", HTTPStatus::Ok),
-            "HTTP/1.1 200 OK"
-        );
-        assert_eq!(
-            format!("{}", HTTPStatus::Created),
-            "HTTP/1.1 201 Created"
-        );
+        assert_eq!(format!("{}", HTTPStatus::Ok), "HTTP/1.1 200 OK");
+        assert_eq!(format!("{}", HTTPStatus::Created), "HTTP/1.1 201 Created");
         assert_eq!(
             format!("{}", HTTPStatus::BadRequest),
             "HTTP/1.1 400 Bad Request"
@@ -113,7 +110,10 @@ mod tests {
     }
     #[test]
     fn test_http_content_type() {
-        assert_eq!(HTTPContentType::File.content_type(), "application/octet-stream");
+        assert_eq!(
+            HTTPContentType::File.content_type(),
+            "application/octet-stream"
+        );
         assert_eq!(HTTPContentType::PlainText.content_type(), "text/plain");
     }
 
