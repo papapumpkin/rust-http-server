@@ -23,20 +23,20 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Cache Cargo dependencies
+      - name: Cache Cargo dependencies and binaries
         uses: actions/cache@v2
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+            ~/.cargo/bin
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
 
       - name: Install cargo-nextest
-        run: cargo install cargo-nextest
+        run: cargo install cargo-nextest || echo "cargo-nextest already installed"
 
       - name: Run Cargo nextest
-        uses: actions-rs/cargo@v1
-        with:
-          command: nextest
-          args: run --all-features
+        run: cargo nextest run --all-features
