@@ -73,3 +73,38 @@ pub fn parse_stream(stream: &TcpStream) -> io::Result<ParsedRequest> {
         body: Some(body_str),
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_get_request() {
+        let headers = "GET /home HTTP/1.1\r\nUser-Agent: TestAgent\r\n\r\n";
+        let parsed = parse_request_headers(headers);
+        assert_eq!(parsed.method, "GET");
+        assert_eq!(parsed.path, "/home");
+        assert_eq!(parsed.user_agent, "TestAgent");
+        assert_eq!(parsed.content_length, None);
+    }
+
+    #[test]
+    fn test_parse_post_request_with_content_length() {
+        let headers = "POST /submit HTTP/1.1\r\nUser-Agent: TestAgent\r\nContent-Length: 15\r\n\r\n";
+        let parsed = parse_request_headers(headers);
+        assert_eq!(parsed.method, "POST");
+        assert_eq!(parsed.path, "/submit");
+        assert_eq!(parsed.user_agent, "TestAgent");
+        assert_eq!(parsed.content_length, Some(15));
+    }
+
+    #[test]
+    fn test_parse_malformed_request() {
+        let headers = "INVALID REQUEST\r\n";
+        let parsed = parse_request_headers(headers);
+        assert_eq!(parsed.method, "");
+        assert_eq!(parsed.path, "");
+        assert_eq!(parsed.user_agent, "");
+        assert_eq!(parsed.content_length, None);
+    }
+}
