@@ -9,12 +9,12 @@ mod file;
 mod http;
 mod request;
 mod response;
-mod shutdown;
 mod server;
+mod shutdown;
 
 use config::Settings;
-use server::Server;
 use http::{HTTPBody, HTTPStatus};
+use server::Server;
 use shutdown::ShutdownSignal;
 
 #[tokio::main]
@@ -29,7 +29,7 @@ async fn main() -> io::Result<()> {
     // open a channel for main thread to listen for shutdown signal
     let (tx, rx) = mpsc::channel::<ShutdownSignal>(1);
     shutdown::handle_shutdown_signals(tx).await;
-    
+
     let mut server = Server::new(settings, rx).await?;
     // Run the server and handle its exit
     if let Some(exit_code) = server.run().await {

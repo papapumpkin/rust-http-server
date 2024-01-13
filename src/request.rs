@@ -58,12 +58,16 @@ pub async fn parse_stream(stream: &mut TcpStream) -> io::Result<ParsedRequest> {
     let mut body_bytes = vec![0; body_length];
     stream.read_exact(&mut body_bytes).await?;
 
-    let body_str = String::from_utf8(body_bytes)
-        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    let body_str =
+        String::from_utf8(body_bytes).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
     Ok(ParsedRequest {
         headers: parsed_headers,
-        body: if body_str.is_empty() { None } else { Some(body_str) },
+        body: if body_str.is_empty() {
+            None
+        } else {
+            Some(body_str)
+        },
     })
 }
 

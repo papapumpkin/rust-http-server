@@ -1,8 +1,8 @@
-use tokio::net::{TcpListener, TcpStream};
-use std::sync::Arc;
-use std::io::{self};
-use tokio::sync::mpsc;
 use crate::{config::Settings, connection::handle_connection, shutdown::ShutdownSignal};
+use std::io::{self};
+use std::sync::Arc;
+use tokio::net::{TcpListener, TcpStream};
+use tokio::sync::mpsc;
 
 pub struct Server {
     settings: Arc<Settings>,
@@ -11,7 +11,10 @@ pub struct Server {
 }
 
 impl Server {
-    pub async fn new(settings: Arc<Settings>, rx: mpsc::Receiver<ShutdownSignal>) -> io::Result<Self> {
+    pub async fn new(
+        settings: Arc<Settings>,
+        rx: mpsc::Receiver<ShutdownSignal>,
+    ) -> io::Result<Self> {
         let address = format!("{}:{}", settings.hostname, settings.port);
         let listener = TcpListener::bind(&address).await?;
         println!("Server listening on {}", address);
@@ -58,15 +61,15 @@ impl Server {
             Some(ShutdownSignal::NormalExit) => {
                 println!("Shutting down normally.");
                 true
-            },
+            }
             Some(ShutdownSignal::ErrorExit(code)) => {
                 eprintln!("Shutting down with error code: {}", code);
                 true
-            },
+            }
             Some(ShutdownSignal::ReloadConfig) => {
                 println!("Reloading configuration.");
                 false // Indicates not to exit
-            },
+            }
             None => true, // Channel closed
         }
     }

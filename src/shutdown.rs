@@ -10,8 +10,13 @@ pub async fn handle_shutdown_signals(tx: mpsc::Sender<ShutdownSignal>) {
     // CTRL-C handler
     let ctrl_c_tx = tx.clone();
     tokio::spawn(async move {
-        tokio::signal::ctrl_c().await.expect("Failed to listen for ctrl_c");
-        ctrl_c_tx.send(ShutdownSignal::NormalExit).await.expect("Failed to send shutdown signal");
+        tokio::signal::ctrl_c()
+            .await
+            .expect("Failed to listen for ctrl_c");
+        ctrl_c_tx
+            .send(ShutdownSignal::NormalExit)
+            .await
+            .expect("Failed to send shutdown signal");
     });
 
     // SIGTERM and SIGHUP handlers for Unix systems
@@ -26,7 +31,8 @@ async fn setup_unix_signal_handlers(tx: mpsc::Sender<ShutdownSignal>) {
     let sigterm_tx = tx.clone();
     let sighup_tx = tx.clone();
     tokio::spawn(async move {
-        let mut term_signal = signal(SignalKind::terminate()).expect("Failed to set SIGTERM handler");
+        let mut term_signal =
+            signal(SignalKind::terminate()).expect("Failed to set SIGTERM handler");
         let mut hup_signal = signal(SignalKind::hangup()).expect("Failed to set SIGHUP handler");
 
         tokio::select! {
