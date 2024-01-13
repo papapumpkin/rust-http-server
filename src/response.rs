@@ -33,7 +33,7 @@ impl fmt::Display for HTTPResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::HTTPContentType;
+    use crate::http::HTTPContentType;
 
     #[test]
     fn test_http_response_without_body() {
