@@ -7,7 +7,7 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub fn load() -> Result<Self, &'static str> {
+    pub async fn load() -> Result<Self, &'static str> {
         const DEFAULT_HOSTNAME: &str = "127.0.0.1";
         const DEFAULT_PORT: &str = "4221";
         const DEFAULT_BUFFER_SIZE: usize = 1024;
@@ -32,9 +32,9 @@ impl Settings {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_load_settings() {
-        let settings: Settings = Settings::load().expect("Failed to load settings");
+    #[tokio::test]
+    async fn test_load_settings() {
+        let settings: Settings = Settings::load().await.expect("Failed to load settings");
 
         // test that default values are loaded if nothing is specified
         assert_eq!(settings.buffer_size, 1024);
@@ -42,14 +42,14 @@ mod tests {
         assert_eq!(settings.port, "4221");
     }
 
-    #[test]
-    fn test_load_settings_from_env() {
+    #[tokio::test]
+    async fn test_load_settings_from_env() {
         // setting env vars, these should be loaded by settings
         env::set_var("HOSTNAME", "dummy_host");
         env::set_var("PORT", "1");
         env::set_var("BUFFER_SIZE", "512");
 
-        let settings: Settings = Settings::load().expect("Failed to load settings");
+        let settings: Settings = Settings::load().await.expect("Failed to load settings");
 
         assert_eq!(
             settings.buffer_size,
