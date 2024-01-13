@@ -1,131 +1,111 @@
-use std::io::{self, Write};
-use std::net::{TcpListener, TcpStream};
-use std::path::Path;
+use std::io::{self};
 use std::sync::Arc;
-use std::thread;
+use tokio::net::TcpListener;
+use tokio::sync::mpsc;
 
 mod cli;
 mod config;
+mod connection;
 mod file;
 mod http;
 mod request;
 mod response;
+mod shutdown;
 
 use config::Settings;
-use http::{HTTPBody, HTTPContentType, HTTPStatus};
-use response::HTTPResponse;
+use connection::handle_connection;
+use http::{HTTPBody, HTTPStatus};
+use shutdown::ShutdownSignal;
 
-fn handle_connection(mut stream: TcpStream, _config: Arc<Settings>) -> io::Result<()> {
-    println!("Accepted new connection!");
+#[tokio::main]
+async fn main() -> io::Result<()> {
+    // load application configuration and create Arc so it can be shared safely amongst threads
+    let settings: Arc<Settings> = Arc::new(
+        Settings::load()
+            .await
+            .expect("Failed to load configuration!"),
+    );
+    let address: String = format!("{}:{}", settings.hostname, settings.port);
 
-    match request::parse_stream(&stream) {
-        Ok(request) => {
-            let response = match request.headers.path.as_str() {
-                "/" => HTTPResponse {
-                    status: HTTPStatus::Ok,
-                    body: None,
-                },
-                "/user-agent" => HTTPResponse {
-                    status: HTTPStatus::Ok,
-                    body: Some(HTTPBody {
-                        body: request.headers.user_agent,
-                        content_type: HTTPContentType::PlainText,
-                    }),
-                },
-                path if path.starts_with("/echo/") => {
-                    let to_echo = &path[6..];
-                    let to_echo = to_echo.to_string();
-                    HTTPResponse {
-                        status: HTTPStatus::Ok,
-                        body: Some(HTTPBody {
-                            body: to_echo,
-                            content_type: HTTPContentType::PlainText,
-                        }),
-                    }
-                }
-                path if path.starts_with("/files/") => {
-                    let directory =
-                        cli::get_cli_arg_by_name("--directory").expect("Argument not found");
-
-                    let safe_filename = file::parse_filename_from_request_path(&path)
-                        .expect("Invalid filename in request");
-
-                    let full_path = Path::new(&directory).join(safe_filename);
-                    println!("Full path to file: {}", full_path.display());
-                    if request.headers.method == "GET" {
-                        let result = match file::read_file_to_string(&full_path) {
-                            Some(file_content) => HTTPResponse {
-                                status: HTTPStatus::Ok,
-                                body: Some(HTTPBody {
-                                    body: file_content,
-                                    content_type: HTTPContentType::File,
-                                }),
-                            },
-                            None => HTTPResponse {
-                                status: HTTPStatus::NotFound,
-                                body: None,
-                            },
-                        };
-                        result
-                    } else if request.headers.method == "POST" {
-                        let body = request.body.unwrap();
-                        file::write_string_to_file(&full_path, &body)?;
-
-                        HTTPResponse {
-                            status: HTTPStatus::Created,
-                            body: Some(HTTPBody {
-                                body: body,
-                                content_type: HTTPContentType::File,
-                            }),
-                        }
-                    } else {
-                        HTTPResponse {
-                            status: HTTPStatus::BadRequest,
-                            body: None,
-                        }
-                    }
-                }
-                _ => HTTPResponse {
-                    status: HTTPStatus::NotFound,
-                    body: None,
-                },
-            };
-            println!("{}", format!("{}", response));
-            stream.write_all(response.to_string().as_bytes())?;
-        }
-        Err(_) => {
-            let response = HTTPResponse {
-                status: HTTPStatus::InternalServerError,
-                body: None,
-            };
-            stream.write_all(response.to_string().as_bytes())?;
-        }
-    }
-    Ok(())
-}
-
-fn main() -> io::Result<()> {
-    let settings = Arc::new(Settings::load().expect("Failed to load configuration"));
     println!("Starting server...");
-    let address = format!("{}:{}", settings.hostname, settings.port);
-    let listener = TcpListener::bind(&address)?;
-
+    let listener: TcpListener = TcpListener::bind(&address).await.unwrap();
     println!("Server listening on {}", address);
 
-    for stream in listener.incoming() {
-        let settings_clone = settings.clone();
-        match stream {
-            Ok(stream) => {
-                let _ = thread::spawn(move || {
-                    let _ = handle_connection(stream, settings_clone);
+    // open a channel for main thread to listen for shutdown signal
+    let (tx, mut rx) = mpsc::channel::<ShutdownSignal>(1);
+
+    //Spawn a separate task to handle user shutdown logic
+    let ctrl_c_tx = tx.clone();
+    tokio::spawn(async move {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("Failed to listen for ctrl_c");
+        ctrl_c_tx.send(ShutdownSignal::NormalExit).await.unwrap();
+    });
+
+    // Handle SIGTERM and SIGHUP in Unix-like systems
+    #[cfg(unix)]
+    {
+        let sigterm_tx = tx.clone();
+        let sighup_tx = tx.clone();
+        tokio::spawn(async move {
+            use tokio::signal::unix::{signal, SignalKind};
+
+            let mut term_signal =
+                signal(SignalKind::terminate()).expect("Failed to set SIGTERM handler");
+            let mut hup_signal =
+                signal(SignalKind::hangup()).expect("Failed to set SIGHUP handler");
+
+            tokio::select! {
+                _ = term_signal.recv() => {
+                    sigterm_tx.send(ShutdownSignal::NormalExit).await.unwrap();
+                }
+                _ = hup_signal.recv() => {
+                    sighup_tx.send(ShutdownSignal::ReloadConfig).await.unwrap();
+                    // You might handle SIGHUP differently, such as reloading config
+                }
+            }
+        });
+    }
+
+    let mut should_exit = false;
+    let mut exit_code: Option<i32> = None;
+
+    while !should_exit {
+        // simultaneously wait for connections AND check rx channel for shutdown messages
+        tokio::select! {
+            accept_result = listener.accept() => {
+                let (socket, _) = accept_result.unwrap();
+                let settings_clone = settings.clone();
+                tokio::spawn(async move {
+                    if let Err(e) = handle_connection(socket, settings_clone).await {
+                        eprintln!("Failed to handle connection: {}", e);
+                    }
                 });
             }
-            Err(e) => {
-                let _ = thread::spawn(move || {
-                    eprintln!("Connection failed: {}", e);
-                });
+            shutdown_signal = rx.recv() => {
+                match shutdown_signal {
+                    Some(ShutdownSignal::NormalExit) => {
+                        println!("Shutting down normally.");
+                        should_exit = true;
+                    },
+                    Some(ShutdownSignal::ErrorExit(code)) => {
+                        eprintln!("Shutting down with error code: {}", code);
+                        should_exit = true;
+                        exit_code = Some(code);
+                    },
+                    Some(ShutdownSignal::ReloadConfig) => {
+                        println!("Reloading configuration.");
+                        break;
+                    },
+                    None => should_exit = true, // Channel closed
+                }
             }
         }
     }
+    if let Some(code) = exit_code {
+        std::process::exit(code);
+    }
+
     Ok(())
 }
