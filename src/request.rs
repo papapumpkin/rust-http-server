@@ -1,5 +1,6 @@
-use std::io::{self, BufRead, BufReader, Read};
-use std::net::TcpStream;
+use std::io::{self};
+use tokio::io::AsyncReadExt;
+use tokio::net::TcpStream;
 
 pub struct RequestHeaders {
     pub method: String,
@@ -13,7 +14,7 @@ pub struct ParsedRequest {
     pub body: Option<String>,
 }
 
-pub fn parse_request_headers(headers: &str) -> RequestHeaders {
+pub async fn parse_request_headers(headers: &str) -> RequestHeaders {
     println!("Headers: {}", headers);
     let header_lines: Vec<&str> = headers.split("\r\n").collect();
 
@@ -44,25 +45,37 @@ pub fn parse_request_headers(headers: &str) -> RequestHeaders {
     }
 }
 
-pub fn parse_stream(stream: &TcpStream) -> io::Result<ParsedRequest> {
-    let mut reader = BufReader::new(stream);
+pub async fn parse_stream(stream: &mut TcpStream) -> io::Result<ParsedRequest> {
     let mut headers = String::new();
 
-    // Read headers
-    loop {
-        let mut line = String::new();
-        reader.read_line(&mut line)?;
-        if line == "\r\n" {
-            break; // End of headers
+    // Read headers asynchronously
+    let mut header_buffer = [0; 1024]; // Adjust buffer size as needed
+    let mut end_of_headers_found = false;
+
+    while !end_of_headers_found {
+        let bytes_read = stream.read(&mut header_buffer).await?;
+        if bytes_read == 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::BrokenPipe,
+                "Connection closed",
+            ));
         }
-        headers.push_str(&line);
+
+        let chunk = String::from_utf8_lossy(&header_buffer[..bytes_read]);
+        if let Some(pos) = chunk.find("\r\n\r\n") {
+            let end = pos + 4; // Include the length of "\r\n\r\n"
+            headers.push_str(&chunk[..end]);
+            end_of_headers_found = true;
+        } else {
+            headers.push_str(&chunk);
+        }
     }
 
-    let parsed_headers = parse_request_headers(&headers);
+    let parsed_headers = parse_request_headers(&headers).await;
 
     // Read the body
     let mut body_bytes = vec![0; parsed_headers.content_length.unwrap_or(0)];
-    reader.read_exact(&mut body_bytes)?;
+    stream.read_exact(&mut body_bytes).await?;
 
     // Convert body to String
     let body_str =
@@ -78,30 +91,31 @@ pub fn parse_stream(stream: &TcpStream) -> io::Result<ParsedRequest> {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_parse_get_request() {
+    #[tokio::test]
+    async fn test_parse_get_request() {
         let headers = "GET /home HTTP/1.1\r\nUser-Agent: TestAgent\r\n\r\n";
-        let parsed = parse_request_headers(headers);
+        let parsed = parse_request_headers(headers).await;
         assert_eq!(parsed.method, "GET");
         assert_eq!(parsed.path, "/home");
         assert_eq!(parsed.user_agent, "TestAgent");
         assert_eq!(parsed.content_length, None);
     }
 
-    #[test]
-    fn test_parse_post_request_with_content_length() {
-        let headers = "POST /submit HTTP/1.1\r\nUser-Agent: TestAgent\r\nContent-Length: 15\r\n\r\n";
-        let parsed = parse_request_headers(headers);
+    #[tokio::test]
+    async fn test_parse_post_request_with_content_length() {
+        let headers =
+            "POST /submit HTTP/1.1\r\nUser-Agent: TestAgent\r\nContent-Length: 15\r\n\r\n";
+        let parsed = parse_request_headers(headers).await;
         assert_eq!(parsed.method, "POST");
         assert_eq!(parsed.path, "/submit");
         assert_eq!(parsed.user_agent, "TestAgent");
         assert_eq!(parsed.content_length, Some(15));
     }
 
-    #[test]
-    fn test_parse_malformed_request() {
+    #[tokio::test]
+    async fn test_parse_malformed_request() {
         let headers = "INVALID REQUEST\r\n";
-        let parsed = parse_request_headers(headers);
+        let parsed = parse_request_headers(headers).await;
         assert_eq!(parsed.method, "");
         assert_eq!(parsed.path, "");
         assert_eq!(parsed.user_agent, "");
