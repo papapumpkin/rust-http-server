@@ -7,7 +7,7 @@ pub enum ShutdownSignal {
 }
 
 pub async fn handle_shutdown_signals(tx: mpsc::Sender<ShutdownSignal>) {
-    // CTRL-C handler
+    // CTRL-C shutdown channel
     let ctrl_c_tx = tx.clone();
     tokio::spawn(async move {
         tokio::signal::ctrl_c()
@@ -27,7 +27,7 @@ pub async fn handle_shutdown_signals(tx: mpsc::Sender<ShutdownSignal>) {
 #[cfg(unix)]
 async fn setup_unix_signal_handlers(tx: mpsc::Sender<ShutdownSignal>) {
     use tokio::signal::unix::{signal, SignalKind};
-
+    // clone channel 1x per shutdown signal
     let sigterm_tx = tx.clone();
     let sighup_tx = tx.clone();
     tokio::spawn(async move {
@@ -35,6 +35,7 @@ async fn setup_unix_signal_handlers(tx: mpsc::Sender<ShutdownSignal>) {
             signal(SignalKind::terminate()).expect("Failed to set SIGTERM handler");
         let mut hup_signal = signal(SignalKind::hangup()).expect("Failed to set SIGHUP handler");
 
+        // if any of the UNIX signals are received then send corresponding shutdown signal via channel
         tokio::select! {
             _ = term_signal.recv() => {
                 sigterm_tx.send(ShutdownSignal::NormalExit).await.expect("Failed to send SIGTERM signal");

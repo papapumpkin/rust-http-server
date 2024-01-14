@@ -30,6 +30,7 @@ impl Server {
         let exit_code: Option<i32> = None;
 
         loop {
+            // Simultaneously listen for TCP connections and shutdown signals sent via channel
             tokio::select! {
                 accept_result = self.listener.accept() => {
                     if let Ok((socket, _)) = accept_result {
